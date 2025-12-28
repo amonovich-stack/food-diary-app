@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="מעקב אוכל">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="description" content="מעקב אוכל והרגשה - כלי עזר אישי">
+    
+    <title>מעקב אוכל והרגשה</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="icon-192.png">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            line-height: 1.6;
+            overscroll-behavior: none;
+        }
+
+        .app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            padding: max(env(safe-area-inset-top), 20px) 24px 24px 24px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+
+        .install-prompt {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 16px 24px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .install-prompt.show {
+            display: flex;
+        }
+
+        .install-prompt button {
+            background: white;
+            color: #059669;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .content {
+            padding: 24px;
+            padding-bottom: max(env(safe-area-inset-bottom), 24px);
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            background: white;
+            padding-top: 16px;
+            z-index: 50;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 12px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #6b7280;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .nav-tab.active {
+            color: #6366f1;
+            border-bottom-color: #6366f1;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .question {
+            margin-bottom: 24px;
+        }
+
+        .question-label {
+            display: block;
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+
+        .required {
+            color: #ef4444;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="time"],
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="time"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .radio-option:active {
+            transform: scale(0.98);
+        }
+
+        .radio-option:hover {
+            border-color: #c7d2fe;
+            background: #f5f7ff;
+        }
+
+        .radio-option input[type="radio"] {
+            margin-left: 12px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #6366f1;
+        }
+
+        .radio-option label {
+            flex: 1;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .radio-option.selected {
+            border-color: #6366f1;
+            background: #eef2ff;
+        }
+
+        .scale-container {
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        .scale-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .scale-options {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .scale-option {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .scale-option input[type="radio"] {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            accent-color: #6366f1;
+        }
+
+        .scale-option label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #4b5563;
+            cursor: pointer;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 8px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #4b5563;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .pain-section {
+            padding: 20px;
+            background: #fef2f2;
+            border: 2px solid #fecaca;
+            border-radius: 12px;
+            margin-top: 16px;
+        }
+
+        .pain-section h3 {
+            color: #dc2626;
+            margin-bottom: 16px;
+            font-size: 18px;
+        }
+
+        .success-message {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .success-message .icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .success-message h2 {
+            color: #10b981;
+            margin-bottom: 8px;
+        }
+
+        .success-message p {
+            color: #6b7280;
+            margin-bottom: 24px;
+        }
+
+        /* Dashboard Styles */
+        .stats-grid {
+            display: grid;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
+        }
+
+        .stat-card.highlight {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-color: #fbbf24;
+        }
+
+        .stat-card.danger {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border-color: #f87171;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .trigger-analysis {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .trigger-analysis h3 {
+            font-size: 18px;
+            color: #1f2937;
+            margin-bottom: 16px;
+        }
+
+        .trigger-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            background: #f9fafb;
+        }
+
+        .trigger-name {
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .trigger-rate {
+            font-size: 18px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 6px;
+        }
+
+        .trigger-rate.high {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .trigger-rate.medium {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .trigger-rate.low {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+
+        .no-data-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .entries-list {
+            margin-top: 24px;
+        }
+
+        .entry-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .entry-card.with-pain {
+            border-color: #fca5a5;
+            background: #fef2f2;
+        }
+
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .entry-time {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .entry-meal {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .entry-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .tag {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .tag.dairy { background: #dbeafe; color: #1e40af; }
+        .tag.gluten { background: #fef3c7; color: #92400e; }
+        .tag.fatty { background: #fed7aa; color: #9a3412; }
+        .tag.fast { background: #e0e7ff; color: #4338ca; }
+
+        .pain-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #fee2e2;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
+        .pain-indicator .icon {
+            font-size: 18px;
+        }
+
+        .pain-details {
+            font-size: 13px;
+            color: #991b1b;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e5e7eb;
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .offline-indicator {
+            background: #fbbf24;
+            color: #78350f;
+            padding: 8px 16px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .offline-indicator.show {
+            display: block;
+        }
+
+        /* iOS safe areas */
+        @supports (padding: max(0px)) {
+            .app-container {
+                padding-bottom: max(env(safe-area-inset-bottom), 0px);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .scale-options {
+                gap: 4px;
+            }
+            
+            .scale-option label {
+                font-size: 12px;
+            }
+        }
+
+        /* Pull to refresh */
+        body {
+            overscroll-behavior-y: contain;
+        }
+
+        /* Parent Dashboard Styles */
+        .parent-dashboard {
+            padding-bottom: 40px;
+        }
+
+        .usage-stats {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 2px solid #86efac;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .usage-stats h3 {
+            color: #166534;
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+
+        .usage-metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .usage-metric-label {
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .usage-metric-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #059669;
+        }
+
+        .timeline {
+            margin-top: 24px;
+        }
+
+        .timeline h3 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #1f2937;
+        }
+
+        .timeline-day {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .timeline-day.no-data {
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        .timeline-day.has-pain {
+            background: #fff7ed;
+            border-color: #fed7aa;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .timeline-date {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .timeline-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .timeline-badge.active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .timeline-badge.inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .timeline-badge.partial {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .timeline-meals {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .meal-bubble {
+            padding: 6px 12px;
+            background: #f3f4f6;
+            border-radius: 16px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .meal-bubble.with-pain {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .notification-settings {
+            background: #eff6ff;
+            border: 2px solid #bfdbfe;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .notification-settings h3 {
+            color: #1e40af;
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .notification-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 24px;
+            background: #d1d5db;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #10b981;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(24px);
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-indicator" id="offline-indicator">
+        📡 אין חיבור לאינטרנט - הנתונים יישמרו כשתחזור
+    </div>
+
+    <div class="install-prompt" id="install-prompt">
+        <div>
+            <strong>💙 התקן את האפליקציה</strong>
+            <div style="font-size: 13px; opacity: 0.9;">גישה מהירה מהמסך הראשי</div>
+        </div>
+        <button onclick="installApp()">התקן</button>
+    </div>
+
+    <div class="app-container">
+        <div class="header">
+            <h1 id="greeting">💙 מעקב אוכל והרגשה</h1>
+            <p>המטרה היא להכיר טוב יותר מה עושה לך טוב ומה פחות.<br>
+            אם אין כאב – ממלאים ממש מהר.<br>
+            אין תשובות נכונות או לא נכונות</p>
+        </div>
+
+        <div class="content">
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="switchTab('form')">טופס חדש</button>
+                <button class="nav-tab" onclick="switchTab('dashboard')">סיכום</button>
+                <button class="nav-tab" onclick="switchTab('parent')">👨‍👩‍👧 הורים</button>
+            </div>
+
+            <!-- Form Tab -->
+            <div id="form-tab" class="tab-content active">
+                <form id="tracking-form">
+                    <!-- Q1: Time -->
+                    <div class="question">
+                        <label class="question-label">מתי אכלת? <span class="required">*</span></label>
+                        <input type="time" id="meal-time" required>
+                    </div>
+
+                    <!-- Q2: Meal Type -->
+                    <div class="question">
+                        <label class="question-label">איזו ארוחה זו הייתה? <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <div class="radio-option" onclick="selectRadio(this)">
+                                <input type="radio" name="meal-type" value="בוקר" id="meal-morning" required>
+                                <label for="meal-morning">בוקר</label>
+                            </div>
+                            <div class="radio-option" onclick="selectRadio(this)">
+                                <input type="radio" name="meal-type" value="צהריים" id="meal-noon">
+                                <label for="meal-noon">צהריים</label>
+                            </div>
+                            <div class="radio-option" onclick="selectRadio(this)">
+                                <input type="radio" name="meal-type" value="ערב" id="meal-evening">
+                                <label for="meal-evening">ערב</label>
+                            </div>
+                            <div class="radio-option" onclick="selectRadio(this)">
+                                <input type="radio" name="meal-type" value="ביניים" id="meal-snack">
+                                <label for="meal-snack">ביניים</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Q3: Dairy -->
+                    <div class="question">
+                        <label class="question-label">היה באוכל חלב או גבינה? <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <div class="radio-option" onclick="selectRadio(this)">
+                                <input type="radio" name="dairy" value="כן" id="dairy-yes" required>
+                                <label for="dairy-yes">כן</label>
+                            </div>
+                            <div class="radio-option" onclick="selectRadio(this)">
+                                <input type="radio" name="dairy" value="לא" id="dairy-no">
+                                <label for="dairy-no">לא</label>
+                            </div>
+                            <div class="radio-option" onclick="selectRadio(this)">
+                                <input type="radio" name="dairy" value="לא בטוחה" id="dairy-unsure">
+                                <label for="dairy-unsure">לא בטוחה</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Q4: Gluten -->
+                    <div class="question">
+                        <label class="question-label">היה באוכל לחם, פסטה או משהו מקמח? <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <div class="radio-option" onclick="selectRadio(this)">
+                                <input type="radio" name="gluten" value="כן" id="gluten-yes" required>
+                                <label for="gluten-yes">כן</label>
+                            </div>
+                            <div class="radio-option" onclick="selectRadio(this)">
+                                <input type="radio" name="gluten" value="לא" id="gluten-no">
+                                <label for="gluten-no">לא</label>
+                            </div>
+                            <div class="radio-option" onclick="selectRadio(this)">
+                                <input type="radio" name="gluten" value="לא בטוחה" id="gluten-unsure">
+                                <label for="gluten-unsure">לא בטוחה</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Q5: Fatty -->
+                    <div class="question">
+                        <label class="question-label">האוכל היה שומני או מטוגן? <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <div class="radio-option" onclick="selectRadio(this)">
+                                <input type="radio" name="fatty" value="כן" id="fatty-yes" required>
+                                <label for="fatty-yes">כן</label>
+                            </div>
+                            <div class="radio-option" onclick="selectRadio(this)">
+                                <input type="radio" name="fatty" value="לא" id="fatty-no">
+                                <label for="fatty-no">לא</label>
+                            </div>
+                            <div class="radio-option" onclick="selectRadio(this)">
+                                <input type="radio" name="fatty" value="לא בטוחה" id="fatty-unsure">
+                                <label for="fatty-unsure">לא בטוחה</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Q6: Fast Eating -->
+                    <div class="question">
+                        <label class="question-label">אכלתי די מהר <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <div class="radio-option" onclick="selectRadio(this)">
+                                <input type="radio" name="fast-eating" value="כן" id="fast-yes" required>
+                                <label for="fast-yes">כן</label>
+                            </div>
+                            <div class="radio-option" onclick="selectRadio(this)">
+                                <input type="radio" name="fast-eating" value="לא" id="fast-no">
+                                <label for="fast-no">לא</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Q7: Pain -->
+                    <div class="question">
+                        <label class="question-label">אחרי האוכל הרגשתי כאב בטן <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <div class="radio-option" onclick="selectRadio(this); togglePainSection(true)">
+                                <input type="radio" name="pain" value="כן" id="pain-yes" required>
+                                <label for="pain-yes">כן</label>
+                            </div>
+                            <div class="radio-option" onclick="selectRadio(this); togglePainSection(false)">
+                                <input type="radio" name="pain" value="לא" id="pain-no">
+                                <label for="pain-no">לא</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pain Section (Conditional) -->
+                    <div id="pain-section" class="pain-section" style="display: none;">
+                        <h3>💔 פרטים על הכאב</h3>
+
+                        <!-- Q8: Pain Timing -->
+                        <div class="question">
+                            <label class="question-label">אחרי כמה זמן בערך התחיל הכאב? (בדקות) <span class="required">*</span></label>
+                            <input type="number" id="pain-timing" placeholder="30" min="0">
+                        </div>
+
+                        <!-- Q9: Pain Intensity -->
+                        <div class="question">
+                            <label class="question-label">כמה חזק היה הכאב? <span class="required">*</span></label>
+                            <div class="scale-container">
+                                <div class="scale-labels">
+                                    <span>ממש קל</span>
+                                    <span>חזק מאוד</span>
+                                </div>
+                                <div class="scale-options">
+                                    <div class="scale-option" onclick="selectScale(this, 1)">
+                                        <input type="radio" name="pain-intensity" value="1" id="intensity-1">
+                                        <label for="intensity-1">1</label>
+                                    </div>
+                                    <div class="scale-option" onclick="selectScale(this, 2)">
+                                        <input type="radio" name="pain-intensity" value="2" id="intensity-2">
+                                        <label for="intensity-2">2</label>
+                                    </div>
+                                    <div class="scale-option" onclick="selectScale(this, 3)">
+                                        <input type="radio" name="pain-intensity" value="3" id="intensity-3">
+                                        <label for="intensity-3">3</label>
+                                    </div>
+                                    <div class="scale-option" onclick="selectScale(this, 4)">
+                                        <input type="radio" name="pain-intensity" value="4" id="intensity-4">
+                                        <label for="intensity-4">4</label>
+                                    </div>
+                                    <div class="scale-option" onclick="selectScale(this, 5)">
+                                        <input type="radio" name="pain-intensity" value="5" id="intensity-5">
+                                        <label for="intensity-5">5</label>
+                                    </div>
+                                    <div class="scale-option" onclick="selectScale(this, 6)">
+                                        <input type="radio" name="pain-intensity" value="6" id="intensity-6">
+                                        <label for="intensity-6">6</label>
+                                    </div>
+                                    <div class="scale-option" onclick="selectScale(this, 7)">
+                                        <input type="radio" name="pain-intensity" value="7" id="intensity-7">
+                                        <label for="intensity-7">7</label>
+                                    </div>
+                                    <div class="scale-option" onclick="selectScale(this, 8)">
+                                        <input type="radio" name="pain-intensity" value="8" id="intensity-8">
+                                        <label for="intensity-8">8</label>
+                                    </div>
+                                    <div class="scale-option" onclick="selectScale(this, 9)">
+                                        <input type="radio" name="pain-intensity" value="9" id="intensity-9">
+                                        <label for="intensity-9">9</label>
+                                    </div>
+                                    <div class="scale-option" onclick="selectScale(this, 10)">
+                                        <input type="radio" name="pain-intensity" value="10" id="intensity-10">
+                                        <label for="intensity-10">10</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Q10: Pain Type -->
+                        <div class="question">
+                            <label class="question-label">איך הכאב הרגיש? <span class="required">*</span></label>
+                            <div class="radio-group">
+                                <div class="radio-option" onclick="selectRadio(this)">
+                                    <input type="radio" name="pain-type" value="לחץ" id="pain-pressure">
+                                    <label for="pain-pressure">לחץ</label>
+                                </div>
+                                <div class="radio-option" onclick="selectRadio(this)">
+                                    <input type="radio" name="pain-type" value="שריפה" id="pain-burning">
+                                    <label for="pain-burning">שריפה</label>
+                                </div>
+                                <div class="radio-option" onclick="selectRadio(this)">
+                                    <input type="radio" name="pain-type" value="עווית" id="pain-cramp">
+                                    <label for="pain-cramp">עווית</label>
+                                </div>
+                                <div class="radio-option" onclick="selectRadio(this)">
+                                    <input type="radio" name="pain-type" value="אחר" id="pain-other">
+                                    <label for="pain-other">אחר</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Q11: Additional Notes -->
+                        <div class="question">
+                            <label class="question-label">אם בא לך להוסיף משהו – כאן</label>
+                            <textarea id="notes" placeholder="הערות נוספות..."></textarea>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">שמור 💾</button>
+                </form>
+
+                <div id="success-message" class="success-message" style="display: none;">
+                    <div class="icon">✅</div>
+                    <h2>נשמר בהצלחה!</h2>
+                    <p>המידע נוסף למעקב</p>
+                    <button class="btn btn-primary" onclick="resetForm()">מלא שוב</button>
+                    <button class="btn btn-secondary" onclick="switchTab('dashboard')">לצפייה בסיכום</button>
+                </div>
+            </div>
+
+            <!-- Dashboard Tab -->
+            <div id="dashboard-tab" class="tab-content">
+                <div id="dashboard-content">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>טוען נתונים...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Parent Dashboard Tab -->
+            <div id="parent-tab" class="tab-content">
+                <div id="parent-content">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>טוען נתונים...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

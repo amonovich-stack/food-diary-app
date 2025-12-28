@@ -348,6 +348,7 @@ async function handleSubmit(e) {
         timestamp: new Date().toISOString(),
         mealTime: document.getElementById('meal-time').value,
         mealType: document.querySelector('input[name="meal-type"]:checked').value,
+        mealDescription: document.getElementById('meal-description').value,
         dairy: document.querySelector('input[name="dairy"]:checked').value,
         gluten: document.querySelector('input[name="gluten"]:checked').value,
         fatty: document.querySelector('input[name="fatty"]:checked').value,
@@ -568,6 +569,11 @@ function renderEntries() {
                             <div class="entry-meal">${entry.mealType} • ${date.toLocaleDateString('he-IL')}</div>
                         </div>
                     </div>
+                    ${entry.mealDescription ? `
+                        <div style="padding: 8px 12px; background: #f9fafb; border-radius: 8px; margin: 8px 0; font-size: 14px; color: #374151;">
+                            🍽️ ${entry.mealDescription}
+                        </div>
+                    ` : ''}
                     ${tags.length > 0 ? `<div class="entry-tags">${tags.join('')}</div>` : ''}
                     ${entry.pain ? `
                         <div class="pain-indicator">
@@ -764,8 +770,9 @@ function generateTimeline() {
         
         const mealsHtml = dayEntries.map(entry => {
             const painIcon = entry.pain ? ' ⚠️' : '';
+            const mealDesc = entry.mealDescription ? `<br><span style="font-size: 11px; opacity: 0.8;">${entry.mealDescription.substring(0, 30)}${entry.mealDescription.length > 30 ? '...' : ''}</span>` : '';
             return `<div class="meal-bubble ${entry.pain ? 'with-pain' : ''}">
-                ${entry.mealType}${painIcon}
+                ${entry.mealType}${painIcon}${mealDesc}
             </div>`;
         }).join('');
         

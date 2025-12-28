@@ -1,4 +1,4 @@
-const CACHE_NAME = 'food-tracker-v1';
+const CACHE_NAME = 'food-tracker-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -8,8 +8,11 @@ const urlsToCache = [
   '/icon-512.png'
 ];
 
-// Install Service Worker
+// Install Service Worker - force update
 self.addEventListener('install', event => {
+  // Force the waiting service worker to become the active service worker
+  self.skipWaiting();
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -22,59 +25,78 @@ self.addEventListener('install', event => {
   );
 });
 
-// Fetch from cache, fallback to network
+// Activate immediately and claim all clients
+self.addEventListener('activate', event => {
+  // Take control immediately
+  event.waitUntil(
+    Promise.all([
+      // Clean up old caches
+      caches.keys().then(cacheNames => {
+        return Promise.all(
+          cacheNames.map(cacheName => {
+            if (cacheName !== CACHE_NAME) {
+              console.log('Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      }),
+      // Claim all clients immediately
+      self.clients.claim()
+    ])
+  );
+});
+
+// Fetch strategy: Network first, then cache
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then(response => {
-        // Cache hit - return response
-        if (response) {
+        // Don't cache if it's not a successful response
+        if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
 
-        // Clone the request
-        const fetchRequest = event.request.clone();
+        // Clone the response
+        const responseToCache = response.clone();
 
-        return fetch(fetchRequest).then(response => {
-          // Check if valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
+        // Don't cache Supabase API calls
+        if (!event.request.url.includes('supabase.co')) {
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+          });
+        }
 
-          // Clone the response
-          const responseToCache = response.clone();
-
-          // Don't cache Supabase API calls
-          if (!event.request.url.includes('supabase.co')) {
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
-          }
-
-          return response;
-        }).catch(() => {
-          // Network failed, check if we have a cached version
-          return caches.match('/index.html');
-        });
+        return response;
+      })
+      .catch(() => {
+        // Network failed, try cache
+        return caches.match(event.request)
+          .then(response => {
+            return response || caches.match('/index.html');
+          });
       })
   );
 });
 
-// Clean up old caches
-self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
+// Listen for messages from the app to check for updates
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  
+  if (event.data && event.data.type === 'CHECK_UPDATE') {
+    // Force update check
+    self.registration.update();
+  }
+});
+
+// Periodic update check (every time app is opened)
+self.addEventListener('fetch', () => {
+  // Check for updates on every fetch
+  if (Math.random() < 0.1) { // 10% of requests trigger update check
+    self.registration.update();
+  }
 });
 
 // Background sync (when back online)
@@ -85,15 +107,12 @@ self.addEventListener('sync', event => {
 });
 
 async function syncEntries() {
-  // This will be triggered by the app when connection is restored
   console.log('Syncing offline entries...');
 }
 
 // Handle notification clicks
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  
-  // Open the app when notification is clicked
   event.waitUntil(
     clients.openWindow('/')
   );
@@ -107,16 +126,13 @@ self.addEventListener('periodicsync', event => {
 });
 
 async function checkAndSendReminder() {
-  // Check if reminders are enabled
   const remindersEnabled = await caches.match('/reminders-enabled')
     .then(response => response ? response.text() : 'true');
   
   if (remindersEnabled === 'false') return;
   
-  // Check last entry time from cache or storage
   const currentHour = new Date().getHours();
   
-  // Only send reminders during daytime (8am-8pm)
   if (currentHour >= 8 && currentHour <= 20) {
     self.registration.showNotification('מעקב אוכל והרגשה 💙', {
       body: 'זוכרת למלא את הטופס אחרי הארוחה? זה לוקח רק 10 שניות 😊',

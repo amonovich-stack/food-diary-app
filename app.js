@@ -71,9 +71,79 @@ let isOnline = navigator.onLine;
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('Service Worker registered'))
+            .then(reg => {
+                console.log('Service Worker registered');
+                
+                // Check for updates on every page load
+                reg.update();
+                
+                // Listen for updates
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // New version available!
+                            showUpdatePrompt();
+                        }
+                    });
+                });
+            })
             .catch(err => console.log('Service Worker registration failed'));
     });
+    
+    // Listen for controller change (new SW activated)
+    let refreshing;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+    });
+}
+
+// Show update prompt
+function showUpdatePrompt() {
+    const updateBanner = document.createElement('div');
+    updateBanner.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        padding: 16px 24px;
+        text-align: center;
+        z-index: 9999;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideDown 0.3s ease;
+    `;
+    
+    updateBanner.innerHTML = `
+        <div style="font-weight: 600; margin-bottom: 8px;">✨ גרסה חדשה זמינה!</div>
+        <button onclick="updateApp()" style="
+            background: white;
+            color: #059669;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+        ">עדכן עכשיו</button>
+    `;
+    
+    document.body.prepend(updateBanner);
+}
+
+// Update app
+function updateApp() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then(reg => {
+            if (reg && reg.waiting) {
+                reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+        });
+    }
 }
 
 // PWA Install Prompt
